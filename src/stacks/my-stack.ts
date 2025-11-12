@@ -110,7 +110,7 @@ export class MyStack extends Stack {
     const taskDef1 = new TaskDefinition(this, "TaskDef", {
       compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
       cpu: "1024",
-      memoryMiB: "2048",
+      memoryMiB: "9500",
       networkMode: NetworkMode.AWS_VPC,
       taskRole,
       family: "managedinstancescapacityproviderTaskDef1",
@@ -131,7 +131,7 @@ export class MyStack extends Stack {
     const taskDef2 = new TaskDefinition(this, "TaskDef2", {
       compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
       cpu: "1024",
-      memoryMiB: "2048",
+      memoryMiB: "5500",
       networkMode: NetworkMode.AWS_VPC,
       taskRole,
       family: "managedinstancescapacityproviderTaskDef2",
