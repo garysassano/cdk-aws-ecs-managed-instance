@@ -211,7 +211,7 @@
       },
       "steps": [
         {
-          "exec": "pnpm dlx npm-check-updates@18 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,@types/node,esbuild,jest,projen,ts-jest,ts-node,typescript"
+          "exec": "pnpm dlx npm-check-updates@18 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,esbuild,jest,projen,ts-jest,ts-node,typescript"
         },
         {
           "exec": "pnpm i --no-frozen-lockfile"

@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       aws-cdk-lib:
-        specifier: ^2.1.0
+        specifier: ^2.223.0
         version: 2.223.0(constructs@10.4.3)
       constructs:
         specifier: ^10.0.5
@@ -22,7 +22,7 @@ importers:
         specifier: ^30.0.0
         version: 30.0.0
       '@types/node':
-        specifier: ^24.10.1
+        specifier: ^24
         version: 24.10.1
       aws-cdk:
         specifier: ^2

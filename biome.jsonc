@@ -2,7 +2,15 @@
 {
   "assist": {
     "actions": {
-      "recommended": true
+      "recommended": true,
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "identifierOrder": "lexicographic"
+          }
+        }
+      }
     },
     "enabled": true
   },
@@ -16,7 +24,6 @@
       "!.gitattributes",
       "!.github/workflows/build.yml",
       "!.github/workflows/pull-request-lint.yml",
-      "!.github/workflows/upgrade.yml",
       "!.gitignore",
       "!.mergify.yml",
       "!.npmignore",
@@ -31,7 +38,9 @@
   },
   "formatter": {
     "enabled": true,
-    "indentStyle": "tab"
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
   },
   "javascript": {
     "formatter": {
@@ -41,7 +50,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "suspicious": {
+        "noShadowRestrictedNames": "off"
+      }
     }
   },
   "vcs": {
@@ -49,5 +61,5 @@
     "enabled": true,
     "useIgnoreFile": true
   },
-  "$schema": "https://biomejs.dev/schemas/latest/schema.json"
+  "$schema": "node_modules/.pnpm/@biomejs+biome@2.3.5/node_modules/@biomejs/biome/configuration_schema.json"
 }

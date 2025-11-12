@@ -1,11 +1,53 @@
 import { awscdk, javascript } from "projen";
+import { IndentStyle } from "projen/lib/javascript/biome/biome-config";
+
 const project = new awscdk.AwsCdkTypeScriptApp({
-  biome: true,
-  cdkVersion: "2.1.0",
-  defaultReleaseBranch: "main",
   name: "cdk-aws-ecs-managed-instance",
-  packageManager: javascript.NodePackageManager.PNPM,
+
+  // Base
+  defaultReleaseBranch: "main",
+  depsUpgradeOptions: { workflow: false },
+  gitignore: ["**/target"],
   projenrcTs: true,
+
+  // Toolchain
+  biome: true,
+  biomeOptions: {
+    biomeConfig: {
+      assist: {
+        enabled: true,
+        actions: {
+          source: {
+            organizeImports: {
+              level: "on",
+              options: {
+                identifierOrder: "lexicographic",
+              },
+            },
+          },
+        },
+      },
+      formatter: {
+        enabled: true,
+        indentStyle: IndentStyle.SPACE,
+        indentWidth: 2,
+        lineWidth: 100,
+      },
+      linter: {
+        enabled: true,
+        rules: {
+          recommended: true,
+          suspicious: {
+            noShadowRestrictedNames: "off",
+          },
+        },
+      },
+    },
+  },
+  cdkVersion: "2.223.0",
+  minNodeVersion: "24.11.0",
+  packageManager: javascript.NodePackageManager.PNPM,
+  pnpmVersion: "10",
 
   // deps: [],                /* Runtime dependencies of this module. */
   // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
