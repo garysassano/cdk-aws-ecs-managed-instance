@@ -9,7 +9,7 @@ const devEnv = {
 
 const app = new App();
 
-new MyStack(app, "cdk-aws-serverless-otlp-forwarder-cwl-dev", {
+new MyStack(app, "cdk-aws-ecs-managed-instance-dev", {
   env: devEnv,
 });
 

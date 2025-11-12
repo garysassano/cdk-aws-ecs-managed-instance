@@ -1,20 +1,204 @@
 import type { StackProps } from "aws-cdk-lib";
 import { Stack } from "aws-cdk-lib";
+import { SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import {
+  Cluster,
+  Compatibility,
+  ContainerImage,
+  Ec2Service,
+  ManagedInstancesCapacityProvider,
+  NetworkMode,
+  PropagateManagedInstancesTags,
+  Protocol,
+  TaskDefinition,
+} from "aws-cdk-lib/aws-ecs";
+import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { validateEnv } from "../utils/validate-env";
-
-// Constants
-const COLLECTORS_SECRETS_KEY_PREFIX = "serverless-otlp-forwarder/keys/";
-
-// Required environment variables
-const env = validateEnv(["OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_HEADERS"]);
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
     //==============================================================================
-    // AAA TEST
+    // VPC
     //==============================================================================
+    const vpc = new Vpc(this, "Vpc", {
+      maxAzs: 2,
+      natGateways: 1,
+      subnetConfiguration: [
+        {
+          name: "Public",
+          subnetType: SubnetType.PUBLIC,
+          cidrMask: 18,
+        },
+        {
+          name: "Private",
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+          cidrMask: 18,
+        },
+      ],
+    });
+
+    //==============================================================================
+    // ECS CLUSTER
+    //==============================================================================
+    const cluster = new Cluster(this, "ManagedInstancesCluster", {
+      vpc,
+    });
+
+    //==============================================================================
+    // IAM ROLES
+    //==============================================================================
+    // Infrastructure Role for ECS to manage the capacity provider
+    const infrastructureRole = new Role(this, "InfrastructureRole", {
+      roleName: "ecsInfrastructureRoleForManagedInstances",
+      assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName(
+          "AmazonECSInfrastructureRolePolicyForManagedInstances",
+        ),
+      ],
+    });
+
+    // Instance Role for EC2 instances
+    const instanceRole = new Role(this, "InstanceRole", {
+      roleName: "ecsInstanceRoleForManagedInstances",
+      assumedBy: new ServicePrincipal("ec2.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("AmazonECSInstanceRolePolicyForManagedInstances"),
+      ],
+    });
+
+    const instanceProfile = new InstanceProfile(this, "InstanceProfile", {
+      instanceProfileName: "ecsInstanceRoleForManagedInstances",
+      role: instanceRole,
+    });
+
+    //==============================================================================
+    // SECURITY GROUP
+    //==============================================================================
+    const managedInstancesSecurityGroup = new SecurityGroup(this, "ManagedInstancesSecurityGroup", {
+      vpc,
+      description: "Security group for ManagedInstances capacity provider instances",
+      allowAllOutbound: true,
+    });
+
+    //==============================================================================
+    // MANAGED INSTANCES CAPACITY PROVIDER
+    //==============================================================================
+    const miCapacityProvider = new ManagedInstancesCapacityProvider(this, "MICapacityProvider", {
+      capacityProviderName: "ManagedInstancesCP",
+      infrastructureRole,
+      ec2InstanceProfile: instanceProfile,
+      subnets: vpc.privateSubnets,
+      securityGroups: [managedInstancesSecurityGroup],
+      propagateTags: PropagateManagedInstancesTags.CAPACITY_PROVIDER,
+    });
+
+    // Add capacity provider to cluster
+    cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
+
+    //==============================================================================
+    // TASK DEFINITIONS
+    //==============================================================================
+    const taskRole = new Role(this, "TaskDefTaskRole", {
+      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
+    });
+
+    // Task Definition 1 - httpd
+    const taskDef1 = new TaskDefinition(this, "TaskDef", {
+      compatibility: Compatibility.MANAGED_INSTANCES,
+      cpu: "1024",
+      memoryMiB: "9500",
+      networkMode: NetworkMode.AWS_VPC,
+      taskRole,
+      family: "managedinstancescapacityproviderTaskDef1",
+    });
+
+    taskDef1.addContainer("web1", {
+      image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/httpd:2.4"),
+      essential: true,
+      portMappings: [
+        {
+          containerPort: 80,
+          protocol: Protocol.TCP,
+        },
+      ],
+    });
+
+    // Task Definition 2 - nginx
+    const taskDef2 = new TaskDefinition(this, "TaskDef2", {
+      compatibility: Compatibility.MANAGED_INSTANCES,
+      cpu: "1024",
+      memoryMiB: "5500",
+      networkMode: NetworkMode.AWS_VPC,
+      taskRole,
+      family: "managedinstancescapacityproviderTaskDef2",
+    });
+
+    taskDef2.addContainer("web2", {
+      image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/nginx:latest"),
+      essential: true,
+      portMappings: [
+        {
+          containerPort: 80,
+          protocol: Protocol.TCP,
+        },
+      ],
+    });
+
+    //==============================================================================
+    // ECS SERVICES
+    //==============================================================================
+    const serviceSecurityGroup = new SecurityGroup(this, "ManagedInstancesServiceSecurityGroup", {
+      vpc,
+      description: "Security group for Managed Instances Services",
+      allowAllOutbound: true,
+    });
+
+    // Service 1
+    const service1 = new Ec2Service(this, "ManagedInstancesService", {
+      cluster,
+      taskDefinition: taskDef1,
+      serviceName: "ManagedInstancesService1",
+      desiredCount: 2,
+      minHealthyPercent: 50,
+      maxHealthyPercent: 200,
+      enableECSManagedTags: false,
+      capacityProviderStrategies: [
+        {
+          capacityProvider: miCapacityProvider.capacityProviderName,
+          weight: 1,
+        },
+      ],
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [serviceSecurityGroup],
+    });
+
+    // Service 2
+    const service2 = new Ec2Service(this, "ManagedInstancesService2", {
+      cluster,
+      taskDefinition: taskDef2,
+      serviceName: "ManagedInstancesService2",
+      desiredCount: 2,
+      minHealthyPercent: 50,
+      maxHealthyPercent: 200,
+      enableECSManagedTags: false,
+      capacityProviderStrategies: [
+        {
+          capacityProvider: miCapacityProvider.capacityProviderName,
+          weight: 2,
+        },
+      ],
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [serviceSecurityGroup],
+    });
+
+    // Ensure Service 2 is created after Service 1
+    service2.node.addDependency(service1);
   }
 }
