@@ -5,7 +5,7 @@ import {
   Cluster,
   Compatibility,
   ContainerImage,
-  Ec2Service,
+  FargateService,
   ManagedInstancesCapacityProvider,
   NetworkMode,
   PropagateManagedInstancesTags,
@@ -44,6 +44,7 @@ export class MyStack extends Stack {
     //==============================================================================
     const cluster = new Cluster(this, "ManagedInstancesCluster", {
       vpc,
+      enableFargateCapacityProviders: false,
     });
 
     //==============================================================================
@@ -105,11 +106,11 @@ export class MyStack extends Stack {
       assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
     });
 
-    // Task Definition 1 - httpd
+    // Task Definition 1 - httpd (compatible with both Fargate and Managed Instances)
     const taskDef1 = new TaskDefinition(this, "TaskDef", {
-      compatibility: Compatibility.MANAGED_INSTANCES,
+      compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
       cpu: "1024",
-      memoryMiB: "9500",
+      memoryMiB: "2048",
       networkMode: NetworkMode.AWS_VPC,
       taskRole,
       family: "managedinstancescapacityproviderTaskDef1",
@@ -126,11 +127,11 @@ export class MyStack extends Stack {
       ],
     });
 
-    // Task Definition 2 - nginx
+    // Task Definition 2 - nginx (compatible with both Fargate and Managed Instances)
     const taskDef2 = new TaskDefinition(this, "TaskDef2", {
-      compatibility: Compatibility.MANAGED_INSTANCES,
+      compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
       cpu: "1024",
-      memoryMiB: "5500",
+      memoryMiB: "2048",
       networkMode: NetworkMode.AWS_VPC,
       taskRole,
       family: "managedinstancescapacityproviderTaskDef2",
@@ -150,21 +151,12 @@ export class MyStack extends Stack {
     //==============================================================================
     // ECS SERVICES
     //==============================================================================
-    const serviceSecurityGroup = new SecurityGroup(this, "ManagedInstancesServiceSecurityGroup", {
-      vpc,
-      description: "Security group for Managed Instances Services",
-      allowAllOutbound: true,
-    });
-
-    // Service 1
-    const service1 = new Ec2Service(this, "ManagedInstancesService", {
+    // Service 1 - Using FargateService with Managed Instances capacity provider
+    const service1 = new FargateService(this, "ManagedInstancesService", {
       cluster,
       taskDefinition: taskDef1,
       serviceName: "ManagedInstancesService1",
       desiredCount: 2,
-      minHealthyPercent: 50,
-      maxHealthyPercent: 200,
-      enableECSManagedTags: false,
       capacityProviderStrategies: [
         {
           capacityProvider: miCapacityProvider.capacityProviderName,
@@ -174,18 +166,14 @@ export class MyStack extends Stack {
       vpcSubnets: {
         subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
-      securityGroups: [serviceSecurityGroup],
     });
 
-    // Service 2
-    const service2 = new Ec2Service(this, "ManagedInstancesService2", {
+    // Service 2 - Using FargateService with Managed Instances capacity provider
+    const service2 = new FargateService(this, "ManagedInstancesService2", {
       cluster,
       taskDefinition: taskDef2,
       serviceName: "ManagedInstancesService2",
       desiredCount: 2,
-      minHealthyPercent: 50,
-      maxHealthyPercent: 200,
-      enableECSManagedTags: false,
       capacityProviderStrategies: [
         {
           capacityProvider: miCapacityProvider.capacityProviderName,
@@ -195,7 +183,6 @@ export class MyStack extends Stack {
       vpcSubnets: {
         subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
-      securityGroups: [serviceSecurityGroup],
     });
 
     // Ensure Service 2 is created after Service 1
