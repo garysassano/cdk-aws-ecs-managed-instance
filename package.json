@@ -34,7 +34,8 @@
     "projen": "^0.98.10",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^4.1.12"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.223.0",

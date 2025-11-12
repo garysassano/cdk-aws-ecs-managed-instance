@@ -211,13 +211,13 @@
       },
       "steps": [
         {
-          "exec": "pnpm dlx npm-check-updates@18 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,esbuild,jest,projen,ts-jest,ts-node,typescript"
+          "exec": "pnpm dlx npm-check-updates@18 --upgrade --target=minor --peer --no-deprecated --dep=dev,peer,prod,optional --filter=@types/jest,esbuild,jest,projen,ts-jest,ts-node,typescript,zod"
         },
         {
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @biomejs/biome @types/jest @types/node aws-cdk esbuild jest jest-junit projen ts-jest ts-node typescript aws-cdk-lib constructs"
+          "exec": "pnpm update @biomejs/biome @types/jest @types/node aws-cdk esbuild jest jest-junit projen ts-jest ts-node typescript zod aws-cdk-lib constructs"
         },
         {
           "exec": "npx projen"
