@@ -106,9 +106,9 @@ export class MyStack extends Stack {
       assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
     });
 
-    // Task Definition 1 - httpd (compatible with both Fargate and Managed Instances)
+    // Task Definition 1 - httpd (compatible with Managed Instances)
     const taskDef1 = new TaskDefinition(this, "TaskDef", {
-      compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
+      compatibility: Compatibility.MANAGED_INSTANCES,
       cpu: "1024",
       memoryMiB: "9500",
       networkMode: NetworkMode.AWS_VPC,
@@ -127,9 +127,9 @@ export class MyStack extends Stack {
       ],
     });
 
-    // Task Definition 2 - nginx (compatible with both Fargate and Managed Instances)
+    // Task Definition 2 - nginx (compatible with Managed Instances)
     const taskDef2 = new TaskDefinition(this, "TaskDef2", {
-      compatibility: Compatibility.FARGATE_AND_MANAGED_INSTANCES,
+      compatibility: Compatibility.MANAGED_INSTANCES,
       cpu: "1024",
       memoryMiB: "5500",
       networkMode: NetworkMode.AWS_VPC,
