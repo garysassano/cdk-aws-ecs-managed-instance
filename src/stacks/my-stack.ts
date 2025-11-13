@@ -1,12 +1,6 @@
 import type { StackProps } from "aws-cdk-lib";
 import { Size, Stack } from "aws-cdk-lib";
-import {
-  AcceleratorManufacturer,
-  CpuManufacturer,
-  SecurityGroup,
-  SubnetType,
-  Vpc,
-} from "aws-cdk-lib/aws-ec2";
+import { CpuManufacturer, SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
 import {
   Cluster,
   Compatibility,
@@ -104,7 +98,7 @@ export class MyStack extends Stack {
         vCpuCountMin: 1,
         memoryMin: Size.gibibytes(2),
         cpuManufacturers: [CpuManufacturer.AMD],
-        acceleratorManufacturers: [AcceleratorManufacturer.NVIDIA],
+        // acceleratorManufacturers: [AcceleratorManufacturer.NVIDIA],
       },
     });
 
