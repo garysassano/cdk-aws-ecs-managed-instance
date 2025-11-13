@@ -7,6 +7,7 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   // Base
   defaultReleaseBranch: "main",
   depsUpgradeOptions: { workflow: false },
+  gitignore: ["cdk.context.json"],
   projenrcTs: true,
 
   // Toolchain

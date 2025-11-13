@@ -1,6 +1,12 @@
 import type { StackProps } from "aws-cdk-lib";
-import { Stack } from "aws-cdk-lib";
-import { SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import { Size, Stack } from "aws-cdk-lib";
+import {
+  AcceleratorManufacturer,
+  CpuManufacturer,
+  SecurityGroup,
+  SubnetType,
+  Vpc,
+} from "aws-cdk-lib/aws-ec2";
 import {
   Cluster,
   Compatibility,
@@ -94,6 +100,12 @@ export class MyStack extends Stack {
       subnets: vpc.privateSubnets,
       securityGroups: [managedInstancesSecurityGroup],
       propagateTags: PropagateManagedInstancesTags.CAPACITY_PROVIDER,
+      instanceRequirements: {
+        vCpuCountMin: 1,
+        memoryMin: Size.gibibytes(2),
+        cpuManufacturers: [CpuManufacturer.AMD],
+        acceleratorManufacturers: [AcceleratorManufacturer.NVIDIA],
+      },
     });
 
     // Add capacity provider to cluster
