@@ -2,19 +2,13 @@ import type { StackProps } from "aws-cdk-lib";
 import { Size, Stack } from "aws-cdk-lib";
 import { CpuManufacturer, SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
 import {
+  CfnExpressGatewayService,
   Cluster,
-  Compatibility,
-  ContainerImage,
-  FargateService,
   ManagedInstancesCapacityProvider,
-  NetworkMode,
   PropagateManagedInstancesTags,
-  Protocol,
-  TaskDefinition,
 } from "aws-cdk-lib/aws-ecs";
 import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { CfnExpressGatewayService } from 'aws-cdk-lib/aws-ecs';
 
 
 export class MyStack extends Stack {
@@ -106,84 +100,64 @@ export class MyStack extends Stack {
     cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
 
     //==============================================================================
-    // TASK DEFINITIONS
+    // IAM ROLES FOR EXPRESS GATEWAY SERVICES
     //==============================================================================
     const taskRole = new Role(this, "TaskDefTaskRole", {
       assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
     });
 
-    // Task Definition 1 - httpd (compatible with Managed Instances)
-    const taskDef1 = new TaskDefinition(this, "TaskDef", {
-      compatibility: Compatibility.MANAGED_INSTANCES,
-      cpu: "1024",
-      memoryMiB: "9500",
-      networkMode: NetworkMode.AWS_VPC,
-      taskRole,
-      family: "managedinstancescapacityproviderTaskDef1",
-    });
-
-    taskDef1.addContainer("web1", {
-      image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/httpd:2.4"),
-      portMappings: [
-        {
-          containerPort: 80,
-          protocol: Protocol.TCP,
-        },
-      ],
-    });
-
-    // Task Definition 2 - nginx (compatible with Managed Instances)
-    const taskDef2 = new TaskDefinition(this, "TaskDef2", {
-      compatibility: Compatibility.MANAGED_INSTANCES,
-      cpu: "1024",
-      memoryMiB: "5500",
-      networkMode: NetworkMode.AWS_VPC,
-      taskRole,
-      family: "managedinstancescapacityproviderTaskDef2",
-    });
-
-    taskDef2.addContainer("web2", {
-      image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/nginx:latest"),
-      portMappings: [
-        {
-          containerPort: 80,
-          protocol: Protocol.TCP,
-        },
+    // Execution role needed for Express Gateway Service
+    const executionRole = new Role(this, "ExecutionRole", {
+      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"),
       ],
     });
 
     //==============================================================================
-    // ECS SERVICES
+    // EXPRESS GATEWAY SERVICES
     //==============================================================================
-    // Service 1 - Using FargateService with Managed Instances capacity provider
-    const service1 = new FargateService(this, "ManagedInstancesService", {
-      cluster,
-      taskDefinition: taskDef1,
-      serviceName: "ManagedInstancesService1",
-      desiredCount: 2,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: miCapacityProvider.capacityProviderName,
-          weight: 1,
-        },
-      ],
+    // Service 1 - httpd using Express Gateway Service
+    const expressService1 = new CfnExpressGatewayService(this, "ExpressGatewayService1", {
+      serviceName: "HttpdExpressService",
+      cluster: cluster.clusterArn,
+      infrastructureRoleArn: infrastructureRole.roleArn,
+      executionRoleArn: executionRole.roleArn,
+      taskRoleArn: taskRole.roleArn,
+      cpu: "1024",
+      memory: "9500",
+      primaryContainer: {
+        image: "public.ecr.aws/docker/library/httpd:2.4",
+        containerPort: 80,
+      },
+      networkConfiguration: {
+        subnets: vpc.privateSubnets.map(subnet => subnet.subnetId),
+        securityGroups: [managedInstancesSecurityGroup.securityGroupId],
+      },
+      healthCheckPath: "/",
     });
 
-    // Service 2 - Using FargateService with Managed Instances capacity provider
-    const service2 = new FargateService(this, "ManagedInstancesService2", {
-      cluster,
-      taskDefinition: taskDef2,
-      serviceName: "ManagedInstancesService2",
-      desiredCount: 2,
-      capacityProviderStrategies: [
-        {
-          capacityProvider: miCapacityProvider.capacityProviderName,
-          weight: 2,
-        },
-      ],
+    // Service 2 - nginx using Express Gateway Service
+    const expressService2 = new CfnExpressGatewayService(this, "ExpressGatewayService2", {
+      serviceName: "NginxExpressService",
+      cluster: cluster.clusterArn,
+      infrastructureRoleArn: infrastructureRole.roleArn,
+      executionRoleArn: executionRole.roleArn,
+      taskRoleArn: taskRole.roleArn,
+      cpu: "1024",
+      memory: "5500",
+      primaryContainer: {
+        image: "public.ecr.aws/docker/library/nginx:latest",
+        containerPort: 80,
+      },
+      networkConfiguration: {
+        subnets: vpc.privateSubnets.map(subnet => subnet.subnetId),
+        securityGroups: [managedInstancesSecurityGroup.securityGroupId],
+      },
+      healthCheckPath: "/",
     });
 
     // Ensure Service 2 is created after Service 1
-    service2.node.addDependency(service1);
+    expressService2.addDependency(expressService1);
   }
 }
