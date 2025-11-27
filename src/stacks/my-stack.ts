@@ -44,7 +44,6 @@ export class MyStack extends Stack {
     //==============================================================================
     const cluster = new Cluster(this, "ManagedInstancesCluster", {
       vpc,
-      enableFargateCapacityProviders: false,
     });
 
     //==============================================================================
@@ -81,7 +80,6 @@ export class MyStack extends Stack {
     const managedInstancesSecurityGroup = new SecurityGroup(this, "ManagedInstancesSecurityGroup", {
       vpc,
       description: "Security group for ManagedInstances capacity provider instances",
-      allowAllOutbound: true,
     });
 
     //==============================================================================
@@ -124,7 +122,6 @@ export class MyStack extends Stack {
 
     taskDef1.addContainer("web1", {
       image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/httpd:2.4"),
-      essential: true,
       portMappings: [
         {
           containerPort: 80,
@@ -145,7 +142,6 @@ export class MyStack extends Stack {
 
     taskDef2.addContainer("web2", {
       image: ContainerImage.fromRegistry("public.ecr.aws/docker/library/nginx:latest"),
-      essential: true,
       portMappings: [
         {
           containerPort: 80,
@@ -169,9 +165,6 @@ export class MyStack extends Stack {
           weight: 1,
         },
       ],
-      vpcSubnets: {
-        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
-      },
     });
 
     // Service 2 - Using FargateService with Managed Instances capacity provider
@@ -186,9 +179,6 @@ export class MyStack extends Stack {
           weight: 2,
         },
       ],
-      vpcSubnets: {
-        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
-      },
     });
 
     // Ensure Service 2 is created after Service 1
