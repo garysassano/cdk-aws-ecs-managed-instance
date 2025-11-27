@@ -46,7 +46,6 @@ export class MyStack extends Stack {
     //==============================================================================
     // Infrastructure Role for ECS to manage the capacity provider
     const infrastructureRole = new Role(this, "InfrastructureRole", {
-      roleName: "ecsInfrastructureRoleForManagedInstances",
       assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName(
@@ -57,7 +56,6 @@ export class MyStack extends Stack {
 
     // Instance Role for EC2 instances
     const instanceRole = new Role(this, "InstanceRole", {
-      roleName: "ecsInstanceRoleForManagedInstances",
       assumedBy: new ServicePrincipal("ec2.amazonaws.com"),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName("AmazonECSInstanceRolePolicyForManagedInstances"),
@@ -65,7 +63,6 @@ export class MyStack extends Stack {
     });
 
     const instanceProfile = new InstanceProfile(this, "InstanceProfile", {
-      instanceProfileName: "ecsInstanceRoleForManagedInstances",
       role: instanceRole,
     });
 
@@ -81,7 +78,6 @@ export class MyStack extends Stack {
     // MANAGED INSTANCES CAPACITY PROVIDER
     //==============================================================================
     const miCapacityProvider = new ManagedInstancesCapacityProvider(this, "MICapacityProvider", {
-      capacityProviderName: "ManagedInstancesCP",
       infrastructureRole,
       ec2InstanceProfile: instanceProfile,
       subnets: vpc.privateSubnets,
@@ -116,7 +112,6 @@ export class MyStack extends Stack {
     // Infrastructure Role specifically for Express Gateway Services
     // This is different from the infrastructure role used for ManagedInstancesCapacityProvider
     const expressGatewayInfrastructureRole = new Role(this, "ExpressGatewayInfrastructureRole", {
-      roleName: "ecsInfrastructureRoleForExpressGatewayServices",
       assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName(
@@ -130,7 +125,6 @@ export class MyStack extends Stack {
     //==============================================================================
     // Service 1 - httpd using Express Gateway Service
     const expressService1 = new CfnExpressGatewayService(this, "ExpressGatewayService1", {
-      serviceName: "HttpdExpressService",
       cluster: cluster.clusterArn,
       infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
@@ -150,7 +144,6 @@ export class MyStack extends Stack {
 
     // Service 2 - nginx using Express Gateway Service
     const expressService2 = new CfnExpressGatewayService(this, "ExpressGatewayService2", {
-      serviceName: "NginxExpressService",
       cluster: cluster.clusterArn,
       infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
