@@ -14,14 +14,12 @@ import {
 } from "aws-cdk-lib/aws-ecs";
 import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
-import { aws_ecs as ecs } from 'aws-cdk-lib';
+import { CfnExpressGatewayService } from 'aws-cdk-lib/aws-ecs';
 
 
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
-
-    const expressGatewayService = new ecs.cfn
 
     //==============================================================================
     // VPC
