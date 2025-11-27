@@ -44,8 +44,8 @@ const project = new awscdk.AwsCdkTypeScriptApp({
       },
     },
   },
-  cdkVersion: "2.223.0",
-  minNodeVersion: "24.11.0",
+  cdkVersion: "2.230.0",
+  minNodeVersion: "24.11.1",
   packageManager: javascript.NodePackageManager.PNPM,
   pnpmVersion: "10",
 

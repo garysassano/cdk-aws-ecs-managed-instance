@@ -38,12 +38,12 @@
     "zod": "^4.1.12"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.223.0",
+    "aws-cdk-lib": "^2.230.0",
     "constructs": "^10.0.5"
   },
   "pnpm": {},
   "engines": {
-    "node": ">= 24.11.0"
+    "node": ">= 24.11.1"
   },
   "license": "Apache-2.0",
   "publishConfig": {
