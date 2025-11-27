@@ -10,7 +10,6 @@ import {
 import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
-
 export class MyStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
@@ -114,6 +113,18 @@ export class MyStack extends Stack {
       ],
     });
 
+    // Infrastructure Role specifically for Express Gateway Services
+    // This is different from the infrastructure role used for ManagedInstancesCapacityProvider
+    const expressGatewayInfrastructureRole = new Role(this, "ExpressGatewayInfrastructureRole", {
+      roleName: "ecsInfrastructureRoleForExpressGatewayServices",
+      assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName(
+          "service-role/AmazonECSInfrastructureRoleforExpressGatewayServices",
+        ),
+      ],
+    });
+
     //==============================================================================
     // EXPRESS GATEWAY SERVICES
     //==============================================================================
@@ -121,7 +132,7 @@ export class MyStack extends Stack {
     const expressService1 = new CfnExpressGatewayService(this, "ExpressGatewayService1", {
       serviceName: "HttpdExpressService",
       cluster: cluster.clusterArn,
-      infrastructureRoleArn: infrastructureRole.roleArn,
+      infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
       taskRoleArn: taskRole.roleArn,
       cpu: "1024",
@@ -131,7 +142,7 @@ export class MyStack extends Stack {
         containerPort: 80,
       },
       networkConfiguration: {
-        subnets: vpc.privateSubnets.map(subnet => subnet.subnetId),
+        subnets: vpc.privateSubnets.map((subnet) => subnet.subnetId),
         securityGroups: [managedInstancesSecurityGroup.securityGroupId],
       },
       healthCheckPath: "/",
@@ -141,7 +152,7 @@ export class MyStack extends Stack {
     const expressService2 = new CfnExpressGatewayService(this, "ExpressGatewayService2", {
       serviceName: "NginxExpressService",
       cluster: cluster.clusterArn,
-      infrastructureRoleArn: infrastructureRole.roleArn,
+      infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
       taskRoleArn: taskRole.roleArn,
       cpu: "1024",
@@ -151,13 +162,11 @@ export class MyStack extends Stack {
         containerPort: 80,
       },
       networkConfiguration: {
-        subnets: vpc.privateSubnets.map(subnet => subnet.subnetId),
+        subnets: vpc.privateSubnets.map((subnet) => subnet.subnetId),
         securityGroups: [managedInstancesSecurityGroup.securityGroupId],
       },
       healthCheckPath: "/",
-    });
-
-    // Ensure Service 2 is created after Service 1
+    }); // Ensure Service 2 is created after Service 1
     expressService2.addDependency(expressService1);
   }
 }
