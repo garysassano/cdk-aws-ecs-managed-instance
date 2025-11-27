@@ -97,11 +97,7 @@ export class MyStack extends Stack {
     //==============================================================================
     // IAM ROLES FOR EXPRESS GATEWAY SERVICES
     //==============================================================================
-    const taskRole = new Role(this, "TaskDefTaskRole", {
-      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
-    });
-
-    // Execution role needed for Express Gateway Service
+    // Execution role for Express Gateway Service with managed policy
     const executionRole = new Role(this, "ExecutionRole", {
       assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
       managedPolicies: [
@@ -109,8 +105,7 @@ export class MyStack extends Stack {
       ],
     });
 
-    // Infrastructure Role specifically for Express Gateway Services
-    // This is different from the infrastructure role used for ManagedInstancesCapacityProvider
+    // Infrastructure Role for Express Gateway Services with managed policy
     const expressGatewayInfrastructureRole = new Role(this, "ExpressGatewayInfrastructureRole", {
       assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
       managedPolicies: [
@@ -128,7 +123,6 @@ export class MyStack extends Stack {
       cluster: cluster.clusterArn,
       infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
-      taskRoleArn: taskRole.roleArn,
       cpu: "1024",
       memory: "9500",
       primaryContainer: {
@@ -147,7 +141,6 @@ export class MyStack extends Stack {
       cluster: cluster.clusterArn,
       infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
       executionRoleArn: executionRole.roleArn,
-      taskRoleArn: taskRole.roleArn,
       cpu: "1024",
       memory: "5500",
       primaryContainer: {
