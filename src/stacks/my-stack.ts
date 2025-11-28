@@ -44,16 +44,6 @@ export class MyStack extends Stack {
     //==============================================================================
     // IAM ROLES
     //==============================================================================
-    // Infrastructure Role for ECS to manage the capacity provider
-    const infrastructureRole = new Role(this, "InfrastructureRole", {
-      assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName(
-          "AmazonECSInfrastructureRolePolicyForManagedInstances",
-        ),
-      ],
-    });
-
     // Instance Role for EC2 instances
     const instanceRole = new Role(this, "InstanceRole", {
       assumedBy: new ServicePrincipal("ec2.amazonaws.com"),
@@ -78,7 +68,6 @@ export class MyStack extends Stack {
     // MANAGED INSTANCES CAPACITY PROVIDER
     //==============================================================================
     const miCapacityProvider = new ManagedInstancesCapacityProvider(this, "MICapacityProvider", {
-      infrastructureRole,
       ec2InstanceProfile: instanceProfile,
       subnets: vpc.privateSubnets,
       securityGroups: [managedInstancesSecurityGroup],
@@ -129,10 +118,6 @@ export class MyStack extends Stack {
         image: "public.ecr.aws/docker/library/httpd:2.4",
         containerPort: 80,
       },
-      networkConfiguration: {
-        subnets: vpc.privateSubnets.map((subnet) => subnet.subnetId),
-        securityGroups: [managedInstancesSecurityGroup.securityGroupId],
-      },
       healthCheckPath: "/",
     });
 
@@ -147,12 +132,10 @@ export class MyStack extends Stack {
         image: "public.ecr.aws/docker/library/nginx:latest",
         containerPort: 80,
       },
-      networkConfiguration: {
-        subnets: vpc.privateSubnets.map((subnet) => subnet.subnetId),
-        securityGroups: [managedInstancesSecurityGroup.securityGroupId],
-      },
       healthCheckPath: "/",
-    }); // Ensure Service 2 is created after Service 1
+    });
+
+    // Ensure Service 2 is created after Service 1
     expressService2.addDependency(expressService1);
   }
 }
