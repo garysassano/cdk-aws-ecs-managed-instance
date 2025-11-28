@@ -1,5 +1,5 @@
 import type { StackProps } from "aws-cdk-lib";
-import { CfnOutput, Stack } from "aws-cdk-lib";
+import { CfnOutput, Stack, Token } from "aws-cdk-lib";
 import { CfnExpressGatewayService } from "aws-cdk-lib/aws-ecs";
 import { ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
@@ -46,6 +46,8 @@ export class MyStack extends Stack {
       },
     });
 
+    expressGatewayService.attrActiveConfigurations;
+
     //==============================================================================
     // OUTPUTS
     //==============================================================================
@@ -62,6 +64,11 @@ export class MyStack extends Stack {
     new CfnOutput(this, "InfrastructureRoleArn", {
       description: "Infrastructure Role ARN",
       value: infrastructureRole.roleArn,
+    });
+
+    new CfnOutput(this, "ActiveConfigurations", {
+      description: "ECS Express Gateway Service Active Configurations",
+      value: Token.asString(expressGatewayService.attrActiveConfigurations),
     });
   }
 }
