@@ -1,11 +1,7 @@
 import type { StackProps } from "aws-cdk-lib";
 import { Size, Stack } from "aws-cdk-lib";
 import { CpuManufacturer, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
-import {
-  Cluster,
-  ManagedInstancesCapacityProvider,
-  PropagateManagedInstancesTags,
-} from "aws-cdk-lib/aws-ecs";
+import { Cluster, ManagedInstancesCapacityProvider } from "aws-cdk-lib/aws-ecs";
 import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
@@ -61,7 +57,6 @@ export class MyStack extends Stack {
     const miCapacityProvider = new ManagedInstancesCapacityProvider(this, "MICapacityProvider", {
       ec2InstanceProfile: instanceProfile,
       subnets: vpc.privateSubnets,
-      propagateTags: PropagateManagedInstancesTags.CAPACITY_PROVIDER,
       instanceRequirements: {
         vCpuCountMin: 1,
         memoryMin: Size.gibibytes(2),
