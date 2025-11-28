@@ -1,7 +1,12 @@
 import type { StackProps } from "aws-cdk-lib";
 import { Size, Stack } from "aws-cdk-lib";
-import { CpuManufacturer, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
-import { Cluster, ManagedInstancesCapacityProvider } from "aws-cdk-lib/aws-ecs";
+import { CpuManufacturer, SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import {
+  CfnExpressGatewayService,
+  Cluster,
+  ManagedInstancesCapacityProvider,
+  PropagateManagedInstancesTags,
+} from "aws-cdk-lib/aws-ecs";
 import { InstanceProfile, ManagedPolicy, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
@@ -52,11 +57,21 @@ export class MyStack extends Stack {
     });
 
     //==============================================================================
+    // SECURITY GROUP
+    //==============================================================================
+    const managedInstancesSecurityGroup = new SecurityGroup(this, "ManagedInstancesSecurityGroup", {
+      vpc,
+      description: "Security group for ManagedInstances capacity provider instances",
+    });
+
+    //==============================================================================
     // MANAGED INSTANCES CAPACITY PROVIDER
     //==============================================================================
     const miCapacityProvider = new ManagedInstancesCapacityProvider(this, "MICapacityProvider", {
       ec2InstanceProfile: instanceProfile,
       subnets: vpc.privateSubnets,
+      securityGroups: [managedInstancesSecurityGroup],
+      propagateTags: PropagateManagedInstancesTags.CAPACITY_PROVIDER,
       instanceRequirements: {
         vCpuCountMin: 1,
         memoryMin: Size.gibibytes(2),
@@ -72,55 +87,55 @@ export class MyStack extends Stack {
     // IAM ROLES FOR EXPRESS GATEWAY SERVICES
     //==============================================================================
     // Execution role for Express Gateway Service with managed policy
-    // const executionRole = new Role(this, "ExecutionRole", {
-    //   assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
-    //   managedPolicies: [
-    //     ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"),
-    //   ],
-    // });
+    const executionRole = new Role(this, "ExecutionRole", {
+      assumedBy: new ServicePrincipal("ecs-tasks.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"),
+      ],
+    });
 
     // // Infrastructure Role for Express Gateway Services with managed policy
-    // const expressGatewayInfrastructureRole = new Role(this, "ExpressGatewayInfrastructureRole", {
-    //   assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
-    //   managedPolicies: [
-    //     ManagedPolicy.fromAwsManagedPolicyName(
-    //       "service-role/AmazonECSInfrastructureRoleforExpressGatewayServices",
-    //     ),
-    //   ],
-    // });
+    const expressGatewayInfrastructureRole = new Role(this, "ExpressGatewayInfrastructureRole", {
+      assumedBy: new ServicePrincipal("ecs.amazonaws.com"),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName(
+          "service-role/AmazonECSInfrastructureRoleforExpressGatewayServices",
+        ),
+      ],
+    });
 
     //==============================================================================
     // EXPRESS GATEWAY SERVICES
     //==============================================================================
     // Service 1 - httpd using Express Gateway Service
-    // const expressService1 = new CfnExpressGatewayService(this, "ExpressGatewayService1", {
-    //   cluster: cluster.clusterArn,
-    //   infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
-    //   executionRoleArn: executionRole.roleArn,
-    //   cpu: "1024",
-    //   memory: "9500",
-    //   primaryContainer: {
-    //     image: "public.ecr.aws/docker/library/httpd:2.4",
-    //     containerPort: 80,
-    //   },
-    //   healthCheckPath: "/",
-    // });
+    const expressService1 = new CfnExpressGatewayService(this, "ExpressGatewayService1", {
+      cluster: cluster.clusterArn,
+      infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
+      executionRoleArn: executionRole.roleArn,
+      cpu: "1024",
+      memory: "9500",
+      primaryContainer: {
+        image: "public.ecr.aws/docker/library/httpd:2.4",
+        containerPort: 80,
+      },
+      healthCheckPath: "/",
+    });
 
     // // Service 2 - nginx using Express Gateway Service
-    // const expressService2 = new CfnExpressGatewayService(this, "ExpressGatewayService2", {
-    //   cluster: cluster.clusterArn,
-    //   infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
-    //   executionRoleArn: executionRole.roleArn,
-    //   cpu: "1024",
-    //   memory: "5500",
-    //   primaryContainer: {
-    //     image: "public.ecr.aws/docker/library/nginx:latest",
-    //     containerPort: 80,
-    //   },
-    //   healthCheckPath: "/",
-    // });
+    const expressService2 = new CfnExpressGatewayService(this, "ExpressGatewayService2", {
+      cluster: cluster.clusterArn,
+      infrastructureRoleArn: expressGatewayInfrastructureRole.roleArn,
+      executionRoleArn: executionRole.roleArn,
+      cpu: "1024",
+      memory: "5500",
+      primaryContainer: {
+        image: "public.ecr.aws/docker/library/nginx:latest",
+        containerPort: 80,
+      },
+      healthCheckPath: "/",
+    });
 
     // // Ensure Service 2 is created after Service 1
-    // expressService2.addDependency(expressService1);
+    expressService2.addDependency(expressService1);
   }
 }
